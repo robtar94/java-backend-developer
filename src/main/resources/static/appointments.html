@@ -452,15 +452,19 @@
 
                 // Handle Optional field unwrapping
                 if (appointments && Array.isArray(appointments)) {
+                    const unwrap = (v, fallback = null) => {
+                        if (Array.isArray(v)) return v.length > 0 ? v[0] : fallback;
+                        return v != null ? v : fallback;
+                    };
                     appointments = appointments.map(apt => ({
-                        id: apt.id && apt.id.length > 0 ? apt.id[0] : apt.id,
-                        clientId: apt.clientId && apt.clientId.length > 0 ? apt.clientId[0] : apt.clientId,
-                        treatmentId: apt.treatmentId && apt.treatmentId.length > 0 ? apt.treatmentId[0] : apt.treatmentId,
-                        dateTime: apt.dateTime && apt.dateTime.length > 0 ? apt.dateTime[0] : apt.dateTime,
-                        status: apt.status && apt.status.length > 0 ? apt.status[0] : apt.status,
-                        treatmentName: apt.treatmentName && apt.treatmentName.length > 0 ? apt.treatmentName[0] : 'N/A',
-                        specialistName: apt.specialistName && apt.specialistName.length > 0 ? apt.specialistName[0] : 'N/A',
-                        durationMinutes: apt.durationMinutes && apt.durationMinutes.length > 0 ? apt.durationMinutes[0] : 'N/A'
+                        id: unwrap(apt.id),
+                        clientId: unwrap(apt.clientId),
+                        treatmentId: unwrap(apt.treatmentId),
+                        dateTime: unwrap(apt.dateTime),
+                        status: unwrap(apt.status),
+                        treatmentName: unwrap(apt.treatmentName, 'N/A'),
+                        specialistName: unwrap(apt.specialistName, 'N/A'),
+                        durationMinutes: unwrap(apt.durationMinutes, 'N/A')
                     }));
                 }
 
@@ -497,6 +501,7 @@
                                             <td>
                                                 <div class="action-buttons">
                                                     ${appointment.status === 'SCHEDULED' ? `
+                                                        <button class="btn btn-primary" onclick="completeAppointment(${appointment.id})">Mark as completed</button>
                                                         <button class="btn btn-secondary" onclick="cancelAppointment(${appointment.id})">Cancel</button>
                                                     ` : ''}
                                                 </div>
@@ -601,25 +606,33 @@
 
         async function cancelAppointment(appointmentId) {
             if (!confirm('Are you sure you want to cancel this appointment?')) return;
+            await updateAppointmentStatus(appointmentId, 'CANCELLED',
+                'Appointment cancelled successfully', 'Failed to cancel appointment');
+        }
 
+        async function completeAppointment(appointmentId) {
+            if (!confirm('Mark this appointment as completed?')) return;
+            await updateAppointmentStatus(appointmentId, 'COMPLETED',
+                'Appointment marked as completed', 'Failed to mark appointment as completed');
+        }
+
+        async function updateAppointmentStatus(appointmentId, status, successMessage, errorMessage) {
             try {
                 const response = await fetch(`/api/v1/appointments/${appointmentId}`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        status: 'CANCELLED'
-                    })
+                    body: JSON.stringify({ status })
                 });
 
-                if (!response.ok) throw new Error('Failed to cancel appointment');
+                if (!response.ok) throw new Error(errorMessage);
 
-                showSuccess('Appointment cancelled successfully');
+                showSuccess(successMessage);
                 loadAppointments();
             } catch (error) {
-                console.error('Error cancelling appointment:', error);
-                showError('Failed to cancel appointment');
+                console.error(errorMessage, error);
+                showError(errorMessage);
             }
         }
 

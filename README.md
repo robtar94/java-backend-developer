@@ -7,6 +7,7 @@ This project was created during an internal training organized by my employer.
 - [Live Demo (VPS)](#live-demo-vps)
 - [Login Credentials](#login-credentials)
 - [Technology Stack](#technology-stack)
+- [Appointment Statuses](#appointment-statuses)
 - [Java Version](#java-version)
 - [Used Libraries](#used-libraries)
 - [Available Endpoints](#available-endpoints)
@@ -14,6 +15,8 @@ This project was created during an internal training organized by my employer.
 ## Live Demo (VPS)
 
 The application is deployed and available at: **http://srv11.mikr.us:20109/**
+
+Current deployed version: **0.0.1.0-ALPHA** (see `pom.xml`).
 
 ## Login Credentials
 
@@ -48,6 +51,38 @@ The following demo accounts are available (both on the VPS demo and locally):
 - **React** + **Vite** (bundled static assets served from `src/main/resources/static`)
 - **Axios** for HTTP calls to the REST API
 - Static HTML pages (`login.html`, `home.html`, `treatments.html`, `appointments.html`) integrated with the Spring Boot backend
+
+## Appointment Statuses
+
+The **Appointments** page (`appointments.html`) displays every appointment with a colored status badge. The status lifecycle is defined by the backend enum `AppointmentStatus` and can take one of the following values:
+
+| Status      | Badge color      | Meaning                                                                                                   | Allowed actions on UI                                             |
+|-------------|------------------|-----------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| `SCHEDULED` | Blue             | Default status assigned right after booking. The appointment is reserved and awaiting the visit date.     | **Mark as completed** (changes status to `COMPLETED`) and **Cancel** (changes status to `CANCELLED`) buttons are shown. The slot blocks the specialist's availability. |
+| `COMPLETED` | Green            | The visit has taken place and was marked as done. Terminal status – cannot be changed further.            | No actions – read-only row.                                       |
+| `CANCELLED` | Red / Gray       | The appointment was cancelled (by the client, receptionist or admin). Terminal status.                    | No actions – read-only row. The slot is freed and no longer blocks availability. |
+
+### Status transitions
+
+```
+            book appointment
+                  │
+                  ▼
+             ┌──────────┐      cancel      ┌───────────┐
+             │ SCHEDULED│ ───────────────► │ CANCELLED │
+             └──────────┘                  └───────────┘
+                  │
+                  │ complete
+                  ▼
+             ┌──────────┐
+             │COMPLETED │
+             └──────────┘
+```
+
+- New appointments are always created with status `SCHEDULED` (see `ManageAppointmentUcImpl`).
+- The status can be updated via `PATCH /api/v1/appointments/{id}` with body `{ "status": "CANCELLED" }` or `{ "status": "COMPLETED" }`.
+- Only appointments in status `SCHEDULED` show the **Mark as completed** and **Cancel** actions in the UI; `COMPLETED` and `CANCELLED` are terminal states.
+- Cancelled appointments are excluded from specialist availability checks (see `AppointmentRepository`), so a cancelled slot becomes free for re-booking.
 
 ## Java Version
 
