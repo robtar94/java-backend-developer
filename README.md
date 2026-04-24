@@ -15,7 +15,7 @@ This project was created during an internal training organized by my employer.
 
 The application is deployed and available at: **http://srv11.mikr.us:20109/**
 
-Current deployed version: **0.0.1.1-ALPHA** (see `pom.xml`).
+Current deployed version: **0.0.2.0-ALPHA** (see `pom.xml`).
 
 ## Login Credentials
 
